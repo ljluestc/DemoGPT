@@ -46,16 +46,21 @@ Upgrade your access through OpenAI's platform.
 Opt for another model that you have access to and give it another whirl.
 We appreciate your understanding and look forward to seeing what you create! ðŸ˜Š
             """
-        self.available_models = self.get_available_models(openai_api_key)
+        self.available_models = self.get_available_models(openai_api_key, openai_api_base)
         self._initLlm()
     
     @classmethod
-    def get_available_models(cls, openai_api_key):
+    def get_available_models(cls, openai_api_key, openai_api_base=None):
         if not openai_api_key:
             return []
         try:
-            client = OpenAI(api_key = openai_api_key)
+            client = OpenAI(api_key=openai_api_key, base_url=openai_api_base or None)
             models = client.models.list()
+            if openai_api_base:
+                # Custom/OpenAI-compatible endpoints often use non-"gpt"-prefixed
+                # model names (e.g. local or third-party deployments), so return
+                # everything the endpoint reports instead of filtering.
+                return [model.id for model in models.data]
             return [model.id for model in models.data if "gpt" in model.id]
         except Exception as e:
             return []
@@ -81,7 +86,12 @@ We appreciate your understanding and look forward to seeing what you create! ðŸ˜
         self.model_name = model_name
         
         assert self.model_name, f"No model is selected, the selected model is {self.model_name}" 
-        assert self.model_name in self.available_models , self.gpt4_message.format(model_name=self.model_name)
+        # Only enforce membership against the fetched model list when talking to
+        # the default OpenAI endpoint. Custom/compatible endpoints (or manually
+        # typed model names) may not be reflected in that list, so let the real
+        # API call validate them instead.
+        if not self.openai_api_base:
+            assert self.model_name in self.available_models , self.gpt4_message.format(model_name=self.model_name)
                 
         Chains.setLlm(
             self.model_name, self.openai_api_key, openai_api_base=self.openai_api_base, has_gpt4=self.hasGPT4

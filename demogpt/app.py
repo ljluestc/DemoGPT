@@ -78,10 +78,19 @@ openai_api_base = st.sidebar.text_input(
 #     "gpt-4-0613",
 # )
 
-models = DemoGPT.get_available_models(openai_api_key)
+models = DemoGPT.get_available_models(openai_api_key, openai_api_base)
 
+use_custom_model = st.sidebar.checkbox("Enter model name manually", value=not models)
 
-model_name = st.sidebar.selectbox("Model", models)
+if use_custom_model or not models:
+    model_name = st.sidebar.text_input(
+        "Model name",
+        value=models[0] if models else "",
+        placeholder="e.g. gpt-4o-mini",
+        help="Type the exact model name/deployment id you want to use, including newly released models not yet listed above.",
+    )
+else:
+    model_name = st.sidebar.selectbox("Model", models)
 
 overview = st.text_area(
     "Explain your LLM-based application idea *",
